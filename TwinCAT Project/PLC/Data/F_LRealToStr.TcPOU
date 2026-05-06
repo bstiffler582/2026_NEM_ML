@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="F_LRealToStr" Id="{a1b2c3d4-e5f6-7890-abcd-ef1234567890}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_LRealToStr : STRING(25)
+VAR_INPUT
+	Value		: LREAL;
+	Decimals	: INT;		// decimal places to keep (0–6)
+END_VAR
+VAR
+	absVal		: LREAL;
+	intPart		: LINT;
+	fracPart	: LREAL;
+	fracMult	: LREAL;
+	fracInt		: LINT;
+	fracStr		: STRING(10);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[absVal   := ABS(Value);
+intPart  := TRUNC(absVal);
+fracPart := absVal - LINT_TO_LREAL(intPart);
+
+CASE Decimals OF
+	1: fracMult := 10.0;
+	2: fracMult := 100.0;
+	3: fracMult := 1000.0;
+	4: fracMult := 10000.0;
+	5: fracMult := 100000.0;
+	6: fracMult := 1000000.0;
+ELSE
+	F_LRealToStr := LINT_TO_STRING(intPart);
+	IF Value < 0.0 THEN F_LRealToStr := CONCAT('-', F_LRealToStr); END_IF
+	RETURN;
+END_CASE
+
+fracInt := TRUNC(fracPart * fracMult);
+fracStr := LINT_TO_STRING(fracInt);
+WHILE LEN(fracStr) < Decimals DO
+	fracStr := CONCAT('0', fracStr);
+END_WHILE
+
+IF Value < 0.0 THEN
+	F_LRealToStr := CONCAT('-', CONCAT(LINT_TO_STRING(intPart), CONCAT('.', fracStr)));
+ELSE
+	F_LRealToStr := CONCAT(LINT_TO_STRING(intPart), CONCAT('.', fracStr));
+END_IF]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="F_STAT_Range" Id="{a1b2c3d4-e5f6-7890-abcd-ef1234567891}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_STAT_Range : LREAL
+VAR_INPUT
+	Input			: ARRAY [*] OF LREAL;
+END_VAR
+VAR
+	i				: DINT;
+	minVal			: LREAL;
+	maxVal			: LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[minVal := Input[LOWER_BOUND(Input, 1)];
+maxVal := Input[LOWER_BOUND(Input, 1)];
+FOR i := LOWER_BOUND(Input, 1) TO UPPER_BOUND(Input, 1) DO
+	IF (Input[i] <> 0.0) THEN
+		IF Input[i] < minVal THEN minVal := Input[i]; END_IF
+		IF Input[i] > maxVal THEN maxVal := Input[i]; END_IF
+	END_IF
+END_FOR
+F_STAT_Range := maxVal - minVal;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

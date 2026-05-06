@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="F_Noise" Id="{c3b2dfd8-5d21-4e62-9ab6-67156369e539}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_Noise : LREAL
+VAR_INPUT
+	fAmplitude		: LREAL;
+END_VAR
+VAR
+	fR				: LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fR := (F_Random() + F_Random() + F_Random()) / 3.0;
+fR := (fR * 2.0) - 1.0;
+F_Noise := fR * fAmplitude;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

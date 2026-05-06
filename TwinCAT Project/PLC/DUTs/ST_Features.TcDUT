@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <DUT Name="ST_Features" Id="{4fb4ab5e-4e0f-4067-a6b0-e054b3a6ed07}">
+    <Declaration><![CDATA[TYPE ST_Features :
+STRUCT
+	curr_mean		: LREAL;
+	curr_peak		: LREAL;
+	curr_range		: LREAL;
+	curr_delta		: LREAL;
+	curr_std		: LREAL;
+	
+	temp			: LREAL;
+	
+	vibe_mean		: LREAL;
+	vibe_peak		: LREAL;
+	vibe_range		: LREAL;
+	vibe_delta		: LREAL;
+	vibe_std		: LREAL;
+	
+	press_mean		: LREAL;
+	press_peak		: LREAL;
+	press_range		: LREAL;
+	press_delta		: LREAL;
+	press_std		: LREAL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

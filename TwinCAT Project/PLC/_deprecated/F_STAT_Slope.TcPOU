@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="F_STAT_Slope" Id="{c3d4e5f6-a7b8-9012-cdef-123456789013}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_STAT_Slope : LREAL
+VAR_INPUT
+	Input			: ARRAY [*] OF LREAL;
+END_VAR
+VAR
+	i				: DINT;
+	n				: DINT;
+	xIdx			: DINT;
+	xi				: LREAL;
+	xMean			: LREAL;
+	yMean			: LREAL;
+	ySum			: LREAL;
+	sumXY			: LREAL;
+	sumXX			: LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FOR i := LOWER_BOUND(Input, 1) TO UPPER_BOUND(Input, 1) DO
+	IF Input[i] <> 0.0 THEN
+		n := n + 1;
+		ySum := ySum + Input[i];
+	END_IF
+END_FOR
+IF n < 2 THEN RETURN; END_IF
+xMean := DINT_TO_LREAL(n - 1) / 2.0;
+yMean := ySum / n;
+FOR i := LOWER_BOUND(Input, 1) TO UPPER_BOUND(Input, 1) DO
+	IF Input[i] <> 0.0 THEN
+		xi := DINT_TO_LREAL(xIdx);
+		sumXY := sumXY + (xi - xMean) * (Input[i] - yMean);
+		sumXX := sumXX + (xi - xMean) * (xi - xMean);
+		xIdx := xIdx + 1;
+	END_IF
+END_FOR
+F_STAT_Slope := sumXY / sumXX;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="F_STAT_Peak" Id="{c6fb0875-1edd-4e90-bf3b-a3ff104f7281}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_STAT_Peak : LREAL
+VAR_INPUT
+	Input			: ARRAY [*] OF LREAL;
+END_VAR
+VAR
+	i				: DINT;
+	peak			: LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FOR i := LOWER_BOUND(Input, 1) TO UPPER_BOUND(Input, 1) DO
+	peak := SEL(Input[i] > peak, peak, Input[i]);
+END_FOR
+F_STAT_Peak := peak;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

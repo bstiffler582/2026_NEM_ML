@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="F_Random" Id="{7bd08c84-9c8b-465f-8e53-5e71d356327c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_Random : LREAL
+VAR_INPUT
+END_VAR
+VAR
+	nSeed 		: INT;
+	rand		: DRAND;
+	fbCpu		: GETCPUCOUNTER;
+	nLow		: DWORD;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbCpu(cpuCntLoDW => nLow);
+nSeed := TO_INT(nLow);
+rand(Seed:=nSeed);
+F_Random := rand.Num;]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

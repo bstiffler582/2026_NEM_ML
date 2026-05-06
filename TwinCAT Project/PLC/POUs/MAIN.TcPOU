@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="MAIN" Id="{1dcddbdf-2253-4ac8-963c-afea778d61ce}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	bInit				: BOOL;	
+
+	fMotorCurrent		AT %I* : LREAL;
+	fTemperature		AT %I* : LREAL;
+	fVibration			AT %I* : LREAL;
+	fPressure			AT %I* : LREAL;
+	bCycleRun			AT %I* : BOOL;
+	
+	// user vars
+	current_arr			: ARRAY[0..24] OF LREAL;
+	vib_arr				: ARRAY[0..24] OF LREAL;
+	press_arr			: ARRAY[0..24] OF LREAL;
+	
+	fbStatsCurrent		: FB_ALY_ArrayStatistics;
+	fbStatsVibration	: FB_ALY_ArrayStatistics;
+	fbStatsPressure		: FB_ALY_ArrayStatistics;
+	
+	stFeatures			: ST_Features;
+	
+	i					: DINT;
+	rtStart				: R_TRIG;
+	ftEnd				: F_TRIG;
+	
+	bEnableLogging		: BOOL := FALSE;
+	sFilePath			: STRING := 'C:\Temp\training\test.csv';
+	fbFile				: FB_FileIO;
+	sData				: STRING(512);
+	bWrite				: BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT bInit THEN
+	fbStatsCurrent.Configure(FALSE, 0.1, 0.1, 0);
+	fbStatsVibration.Configure(FALSE, 0.1, 0.1, 0);
+	fbStatsPressure.Configure(FALSE, 0.1, 0.1, 0);
+	bInit := FALSE;
+END_IF
+
+rtStart(CLK:=bCycleRun);
+ftEnd(CLK:=bCycleRun);
+
+// reset
+IF rtStart.Q THEN
+	i := 0;
+	MEMSET(ADR(current_arr[0]), 0, SIZEOF(LREAL) * 25);
+	MEMSET(ADR(vib_arr[0]), 0, SIZEOF(LREAL) * 25);
+	MEMSET(ADR(press_arr[0]), 0, SIZEOF(LREAL) * 25);
+END_IF
+
+IF bCycleRun THEN
+	IF i < 25 THEN
+		current_arr[i] := fMotorCurrent;
+		vib_arr[i] := fVibration;
+		press_arr[i] := fPressure;
+	END_IF
+	i := i + 1;
+ELSE
+	fbStatsCurrent.Call(ADR(current_arr), SIZEOF(current_arr));
+	fbStatsVibration.Call(ADR(vib_arr), SIZEOF(vib_arr));
+	fbStatsPressure.Call(ADR(press_arr), SIZEOF(press_arr));
+	
+	IF fbStatsCurrent.bNewResult THEN
+		stFeatures.curr_mean := fbStatsCurrent.fMean;
+		stFeatures.curr_peak := fbStatsCurrent.fMax;
+		stFeatures.curr_range := fbStatsCurrent.fMax - fbStatsCurrent.fMin;
+		stFeatures.curr_delta := fbStatsCurrent.fMaxDelta;
+		stFeatures.curr_std := fbStatsCurrent.fStandardDeviation;
+	END_IF
+	IF fbStatsVibration.bNewResult THEN
+		stFeatures.vibe_mean := fbStatsVibration.fMean;
+		stFeatures.vibe_peak := fbStatsVibration.fMax;
+		stFeatures.vibe_range := fbStatsVibration.fMax - fbStatsVibration.fMin;
+		stFeatures.vibe_delta := fbStatsVibration.fMaxDelta;
+		stFeatures.vibe_std := fbStatsVibration.fStandardDeviation;
+	END_IF
+	IF fbStatsPressure.bNewResult THEN
+		stFeatures.press_mean := fbStatsPressure.fMean;
+		stFeatures.press_peak := fbStatsPressure.fMax;
+		stFeatures.press_range := fbStatsPressure.fMax - fbStatsPressure.fMin;
+		stFeatures.press_delta := fbStatsPressure.fMaxDelta;
+		stFeatures.press_std := fbStatsPressure.fStandardDeviation;
+	END_IF
+END_IF
+
+IF ftEnd.Q THEN
+	stFeatures.temp := fTemperature;
+	sData := F_Feature_Csv(stFeatures);
+	bWrite := TRUE;
+END_IF
+
+IF bEnableLogging THEN
+	IF bWrite AND_THEN fbFile.AppendText(sFilePath, sData) THEN
+		bWrite := FALSE;
+	END_IF
+END_IF]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

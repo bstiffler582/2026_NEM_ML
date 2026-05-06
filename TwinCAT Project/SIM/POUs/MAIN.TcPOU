@@ -1,0 +1,148 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="MAIN" Id="{dfee6fff-f5b8-458c-a391-c6f982e81e7b}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	bStart				: BOOL := TRUE;
+	
+	fMotorCurrent		AT %Q* : LREAL;
+	fTemperature		AT %Q* : LREAL;
+	fVibration			AT %Q* : LREAL;
+	fPressure			AT %Q* : LREAL;
+	bCycleRun			AT %Q* : BOOL;
+	
+	nScanCount			: DINT;
+	nCycleLength		: DINT;
+	nIdleLength			: DINT;
+	nState				: DINT;
+	fBaseLoad			: LREAL;
+	fLoad				: LREAL;
+	fTnorm				: LREAL;
+	
+	fWearItem			: LREAL := 0.001;
+	nTempCycles			: DINT;
+	fTempFactor			: LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE nState OF
+	0:
+		// idle
+		IF bStart THEN
+			nState := 1;
+		END_IF
+	1:
+		bCycleRun := FALSE;
+	
+		// Idle signals (baseline)
+		fTemperature := 32.0 + F_Noise(0.01) + (TO_LREAL(nTempCycles) / 50.0);
+		fVibration  := 0.01 + F_Noise(0.01);
+		fMotorCurrent := 2.0 + F_Noise(0.1);
+		fPressure := 50.0 + F_Noise(0.2);
+	
+		nScanCount := nScanCount + 1;
+
+		IF nScanCount >= nIdleLength THEN
+			// Start new cycle
+			nState := 2;
+			nScanCount := 0;
+	
+			nCycleLength := 25;
+			nIdleLength := 200;
+	
+			// Slight load variation
+			fBaseLoad := fBaseLoad + (F_Random() - 0.5) * 0.05;
+			fBaseLoad := LIMIT(0.3, fBaseLoad, 1.0);
+		END_IF
+	
+	2:
+		bCycleRun := TRUE;
+	
+		// Normalized time (0 → 1)
+		fTnorm := TO_LREAL(nScanCount) / TO_LREAL(nCycleLength);
+	
+		// -------------------------
+		// Load profile
+		// -------------------------
+		IF fTnorm < 0.2 THEN
+			fLoad := fBaseLoad * (fTnorm / 0.2);
+		ELSIF fTnorm < 0.8 THEN
+			fLoad := fBaseLoad;
+		ELSE
+			fLoad := fBaseLoad * (1.0 - (fTnorm - 0.8) / 0.2);
+		END_IF
+	
+		// -------------------------
+		// Signal generation
+		// -------------------------
+	
+		fVibration := 0.2
+			+ (fLoad * 2.5)
+			+ (fWearItem * 5.0)
+			+ (fTempFactor * 2.0)
+			+ F_Noise(0.5 + (fWearItem * 1.5) + fTempFactor);
+	
+		fMotorCurrent := 5.0
+			+ (fLoad * 10.0)
+			+ (fWearItem * 4.0)
+			+ F_Noise(0.2 + fWearItem + (fTempFactor * 1.25));
+	
+		fPressure := 50.0
+			- (fLoad * 10.0)
+			- (fWearItem * 2.0)
+			+ F_Noise(0.5 + fWearItem);
+	
+		// -------------------------
+		// Instability from wear
+		// -------------------------
+		(*IF wear > 0.6 THEN
+			vib := vib + Noise(0.2);
+			pres := pres + Noise(1.0);
+		END_IF
+	
+		// -------------------------
+		// Fault spikes
+		// -------------------------
+		IF faultActive AND RANDOM() < 0.2 THEN
+			vib := vib + 1.0;
+			curr := curr + 5.0;
+		END_IF*)
+	
+		// -------------------------
+		// Advance time
+		// -------------------------
+		nScanCount := nScanCount + 1;
+	
+		IF nScanCount >= nCycleLength THEN
+			// End cycle
+			nState := 1;
+			nScanCount := 0;
+			
+			IF fWearItem < 0.25 THEN
+				fWearItem := fWearItem + (F_Random() / 300);
+			ELSE
+				fWearItem := 0.001;
+			END_IF
+	
+			IF F_Random() < 0.01 THEN
+				nTempCycles := 0;
+			ELSE
+				nTempCycles := nTempCycles + (nCycleLength - TO_DINT(F_Random() * 45));
+			END_IF
+			
+			fTempFactor := (fTemperature - 32.0) / 4.0;
+			
+			// Clear fault sometimes
+			(*IF RANDOM() < 0.5 THEN
+				faultActive := FALSE;
+			END_IF
+	
+			// Increase wear slowly
+			wear := wear + 0.002;
+			LIMIT(wear, 0.0, 1.0);*)
+		END_IF
+	
+END_CASE]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

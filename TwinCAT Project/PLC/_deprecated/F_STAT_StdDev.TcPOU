@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">
+  <POU Name="F_STAT_StdDev" Id="{b2c3d4e5-f6a7-8901-bcde-f12345678902}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_STAT_StdDev : LREAL
+VAR_INPUT
+	Input			: ARRAY [*] OF LREAL;
+END_VAR
+VAR
+	i				: DINT;
+	n				: DINT;
+	mean			: LREAL;
+	sum				: LREAL;
+	sumSq			: LREAL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FOR i := LOWER_BOUND(Input, 1) TO UPPER_BOUND(Input, 1) DO
+	IF Input[i] <> 0.0 THEN
+		n := n + 1;
+		sum := sum + Input[i];
+	END_IF
+END_FOR
+IF n = 0 THEN RETURN; END_IF
+mean := sum / n;
+FOR i := LOWER_BOUND(Input, 1) TO UPPER_BOUND(Input, 1) DO
+	IF Input[i] <> 0.0 THEN
+		sumSq := sumSq + (Input[i] - mean) * (Input[i] - mean);
+	END_IF
+END_FOR
+F_STAT_StdDev := SQRT(sumSq / n);]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
