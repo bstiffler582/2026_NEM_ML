@@ -16,6 +16,7 @@
     <Implicit_KindOfTask>{e25f6bea-ef11-4ade-be82-93b8ffca9a70}</Implicit_KindOfTask>
     <Implicit_Jitter_Distribution>{d31d6a83-ef76-4657-acf8-ac92db4d570f}</Implicit_Jitter_Distribution>
     <LibraryReferences>{d454af93-5264-4f70-bda1-833611c5d936}</LibraryReferences>
+    <Released>false</Released>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Data\FB_FileIO.TcPOU">

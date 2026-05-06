@@ -13,7 +13,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{C155FC50-1ED3-431F-B89A-775A9AC96697}" Name="PLC" PrjFilePath="PLC\PLC.plcproj" TmcFilePath="PLC\PLC.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{EBFEF949-747A-4617-2FB6-089A083EBF08}" TmcPath="PLC\PLC.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{F9F374DC-7324-F25B-D5DE-A8930284CA34}" TmcPath="PLC\PLC.tmc">
 					<Name>PLC Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
@@ -56,7 +56,7 @@
 				</Instance>
 			</Project>
 			<Project GUID="{43FCF88F-1B28-4ED4-BDC6-24E010D2391A}" Name="SIM" PrjFilePath="SIM\SIM.plcproj" TmcFilePath="SIM\SIM.tmc" ReloadTmc="true" AmsPort="852" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502040" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{35D00BE7-D33A-F2D0-16B4-B94F7896EF68}" TmcPath="SIM\SIM.tmc">
+				<Instance Id="#x08502040" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{4A241E88-2C58-2015-42E9-5AB61565E42E}" TmcPath="SIM\SIM.tmc">
 					<Name>SIM Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">

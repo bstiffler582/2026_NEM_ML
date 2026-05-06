@@ -11,7 +11,7 @@ input_name = sess.get_inputs()[0].name
 # =========================
 # Load test data
 # =========================
-df = pd.read_csv("test_4.csv")
+df = pd.read_csv("samples.csv")
 
 features = [
     "temp",

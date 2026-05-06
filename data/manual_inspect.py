@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # =========================
 # Load data
 # =========================
-df = pd.read_csv("test_4.csv")
+df = pd.read_csv("samples.csv")
 
 # =========================
 # Normalize cycle time
@@ -54,4 +54,4 @@ plt.show()
 # Save updated dataset
 # =========================
 df.drop(columns=["vibe_delta","curr_delta"], inplace=True)
-df.to_csv("not_inferred.csv", index=False)
+df.to_csv("samples_scored.csv", index=False)

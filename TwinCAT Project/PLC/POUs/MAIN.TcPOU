@@ -4,7 +4,7 @@
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
 	bInit				: BOOL;	
-
+	
 	fMotorCurrent		AT %I* : LREAL;
 	fTemperature		AT %I* : LREAL;
 	fVibration			AT %I* : LREAL;
@@ -20,12 +20,13 @@ VAR
 	
 	stFeatures			: ST_Features;
 	
+	{ attribute 'TcHmiSymbol.AddSymbol' }
 	i					: DINT;
 	rtStart				: R_TRIG;
 	ftEnd				: F_TRIG;
 	
 	bEnableLogging		: BOOL := FALSE;
-	sFilePath			: STRING := 'C:\Temp\csv\test.csv';
+	sFilePath			: STRING := 'C:\Temp\csv\samples.csv';
 	fbFile				: FB_FileIO;
 	sData				: STRING(512);
 	bWrite				: BOOL;
