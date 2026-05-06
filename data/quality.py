@@ -5,18 +5,18 @@ import matplotlib.pyplot as plt
 # =========================
 # Load data
 # =========================
-df = pd.read_csv("samples.csv")
+df = pd.read_csv("test.csv")
 
 # =========================
 # Quality function
 # =========================
 df["quality"] = (
     2.0
-    - 0.10 * df["vibe_peak"]
-    - 0.10 * (df["curr_range"] - 4.0)
-    - 0.10 * df["vibe_range"]
-    - 0.10 * np.abs(df["temp"] - 32.0) / 20.0
-    - 0.10 * df["press_std"]
+    - 0.25 * abs(df["vibe_delta"])
+    - 0.10 * abs(df["curr_delta"])
+    - 0.025 * df["vibe_range"]
+    - 0.025 * df["curr_range"]
+    - 0.25 * (45.0 - df["press_mean"])
 )
 
 # Optional interaction (recommended)
