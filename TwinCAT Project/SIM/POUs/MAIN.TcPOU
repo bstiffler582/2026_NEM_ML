@@ -8,7 +8,7 @@ VAR
 	fMotorCurrent		AT %Q* : LREAL;
 	fTemperature		AT %Q* : LREAL;
 	fVibration			AT %Q* : LREAL;
-	fPressure			AT %Q* : LREAL;
+	nCycleTimeActual	AT %Q* : DINT;
 	bCycleRun			AT %Q* : BOOL;
 	
 	nScanCount			: DINT;
@@ -22,6 +22,7 @@ VAR
 	fWearItem			: LREAL := 0.001;
 	nTempCycles			: DINT;
 	fTempFactor			: LREAL;
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -38,7 +39,6 @@ END_VAR
 		fTemperature := 32.0 + F_Noise(0.01) + (TO_LREAL(nTempCycles) / 50.0);
 		fVibration  := 0.01 + F_Noise(0.01);
 		fMotorCurrent := 2.0 + F_Noise(0.1);
-		fPressure := 50.0 + F_Noise(0.2);
 	
 		nScanCount := nScanCount + 1;
 
@@ -48,7 +48,7 @@ END_VAR
 			nScanCount := 0;
 	
 			nCycleLength := 25;
-			nIdleLength := 200;
+			nIdleLength := 100;
 	
 			// Slight load variation
 			fBaseLoad := fBaseLoad + (F_Random() - 0.5) * 0.05;
@@ -80,33 +80,14 @@ END_VAR
 			+ (fLoad * 2.5)
 			+ (fWearItem * 5.0)
 			+ (fTempFactor * 2.0)
-			+ F_Noise(0.5 + (fWearItem * 1.5) + fTempFactor);
+			+ F_Noise(0.5 + (fWearItem * 2.5) + fTempFactor);
 	
 		fMotorCurrent := 5.0
 			+ (fLoad * 10.0)
 			+ (fWearItem * 4.0)
 			+ F_Noise(0.2 + fWearItem + (fTempFactor * 1.25));
-	
-		fPressure := 50.0
-			- (fLoad * 10.0)
-			- (fWearItem * 2.0)
-			+ F_Noise(0.5 + fWearItem);
-	
-		// -------------------------
-		// Instability from wear
-		// -------------------------
-		(*IF wear > 0.6 THEN
-			vib := vib + Noise(0.2);
-			pres := pres + Noise(1.0);
-		END_IF
-	
-		// -------------------------
-		// Fault spikes
-		// -------------------------
-		IF faultActive AND RANDOM() < 0.2 THEN
-			vib := vib + 1.0;
-			curr := curr + 5.0;
-		END_IF*)
+			
+		nCycleTimeActual := 210 + TO_DINT(F_Random() * 25);
 	
 		// -------------------------
 		// Advance time
@@ -127,7 +108,7 @@ END_VAR
 			IF F_Random() < 0.01 THEN
 				nTempCycles := 0;
 			ELSE
-				nTempCycles := nTempCycles + (nCycleLength - TO_DINT(F_Random() * 45));
+				nTempCycles := nTempCycles + (225 - nCycleTimeActual);
 			END_IF
 			
 			fTempFactor := (fTemperature - 32.0) / 4.0;

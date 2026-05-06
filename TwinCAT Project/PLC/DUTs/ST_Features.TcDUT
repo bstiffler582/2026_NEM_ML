@@ -3,25 +3,22 @@
   <DUT Name="ST_Features" Id="{4fb4ab5e-4e0f-4067-a6b0-e054b3a6ed07}">
     <Declaration><![CDATA[TYPE ST_Features :
 STRUCT
-	curr_mean		: LREAL;
-	curr_peak		: LREAL;
-	curr_range		: LREAL;
-	curr_delta		: LREAL;
-	curr_std		: LREAL;
+	temp				: LREAL;
+	cycle_time			: DINT;
 	
-	temp			: LREAL;
-	
-	vibe_mean		: LREAL;
-	vibe_peak		: LREAL;
-	vibe_range		: LREAL;
-	vibe_delta		: LREAL;
-	vibe_std		: LREAL;
-	
-	press_mean		: LREAL;
-	press_peak		: LREAL;
-	press_range		: LREAL;
-	press_delta		: LREAL;
-	press_std		: LREAL;
+	curr_mean			: LREAL;
+	curr_peak			: LREAL;
+	curr_range			: LREAL;
+	curr_delta_max		: LREAL;
+	curr_delta_idx		: LREAL;
+	curr_std			: LREAL;
+	                	
+	vibe_mean			: LREAL;
+	vibe_peak			: LREAL;
+	vibe_range			: LREAL;
+	vibe_delta_max		: LREAL;
+	vibe_delta_idx		: LREAL;
+	vibe_std			: LREAL;
 END_STRUCT
 END_TYPE
 ]]></Declaration>

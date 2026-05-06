@@ -56,6 +56,8 @@ So for our process data, what meaningful features can we extract? Raw time serie
 - Max Delta (rate of change)
 - Peaks / valleys (captures significant events)
 
+"non-obvious temporal features"
+
 #### The plan:
 1. Data acqusition
     - Capture several cycles worth of *raw* data
