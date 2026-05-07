@@ -3,52 +3,47 @@
   <POU Name="MAIN" Id="{1dcddbdf-2253-4ac8-963c-afea778d61ce}" SpecialFunc="None">
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
-	bInit				: BOOL;	
-	
 	fMotorCurrent		AT %I* : LREAL;
 	fTemperature		AT %I* : LREAL;
 	fVibration			AT %I* : LREAL;
 	nCycleTime			AT %I* : DINT;
 	bCycleRun			AT %I* : BOOL;
 	
-	// user vars
-	current_arr			: ARRAY[0..24] OF LREAL;
-	vib_arr				: ARRAY[0..24] OF LREAL;
-	
-	fbStatsCurrent		: FB_ALY_ArrayStatistics;
-	fbStatsVibration	: FB_ALY_ArrayStatistics;
-	
-	stFeatures			: ST_Features;
-	
-	{ attribute 'TcHmiSymbol.AddSymbol' }
+	bInit				: BOOL;	
 	i					: DINT;
 	rtStart				: R_TRIG;
-	ftEnd				: F_TRIG;
 	
-	bEnableLogging		: BOOL := FALSE;
+	bEnableLogging		: BOOL;
+	bFileWrite			: BOOL;
 	sFilePath			: STRING := 'C:\Temp\csv\samples.csv';
 	fbFile				: FB_FileIO;
 	sData				: STRING(512);
-	bWrite				: BOOL;
+	
+	current_arr			: ARRAY[0..24] OF LREAL;
+	vib_arr				: ARRAY[0..24] OF LREAL;
+	
+	/// declare user vars
+	fbStatsCurrent		: FB_ALY_ArrayStatistics;
+	fbStatsVibration	: FB_ALY_ArrayStatistics;
+	stFeatures			: ST_Features;
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF NOT bInit THEN
+	/// init ALY FBs
 	fbStatsCurrent.Configure(FALSE, 0.1, 0.1, 0);
 	fbStatsVibration.Configure(FALSE, 0.1, 0.1, 0);
 	bInit := FALSE;
 END_IF
 
 rtStart(CLK:=bCycleRun);
-ftEnd(CLK:=bCycleRun);
-
-// reset
 IF rtStart.Q THEN
 	i := 0;
 	MEMSET(ADR(current_arr[0]), 0, SIZEOF(LREAL) * 25);
 	MEMSET(ADR(vib_arr[0]), 0, SIZEOF(LREAL) * 25);
 	IF bEnableLogging THEN
-		bWrite := TRUE;
+		bFileWrite := TRUE;
 	END_IF
 END_IF
 
@@ -57,13 +52,18 @@ IF bCycleRun THEN
 		current_arr[i] := fMotorCurrent;
 		vib_arr[i] := fVibration;
 	END_IF
+	i := i + 1;
+	
+	/// populate non-aggregate features
 	stFeatures.temp := fTemperature;
 	stFeatures.cycle_time := nCycleTime;
-	i := i + 1;
 ELSE
+
+	/// call ALY FBs
 	fbStatsCurrent.Call(ADR(current_arr), SIZEOF(current_arr));
 	fbStatsVibration.Call(ADR(vib_arr), SIZEOF(vib_arr));
 	
+	/// populate aggregate features
 	IF fbStatsCurrent.bNewResult THEN
 		stFeatures.curr_mean := fbStatsCurrent.fMean;
 		stFeatures.curr_peak := fbStatsCurrent.fMax;
@@ -81,13 +81,14 @@ ELSE
 		stFeatures.vibe_std := fbStatsVibration.fStandardDeviation;
 	END_IF
 	
+	/// generate CSV string
 	IF fbStatsCurrent.bNewResult AND fbStatsVibration.bNewResult THEN
 		sData := F_Feature_Csv(stFeatures);
 	END_IF
 END_IF
 
-IF bWrite AND_THEN fbFile.AppendText(sFilePath, sData) THEN
-	bWrite := FALSE;
+IF bFileWrite AND_THEN fbFile.AppendText(sFilePath, sData) THEN
+	bFileWrite := FALSE;
 END_IF]]></ST>
     </Implementation>
   </POU>
