@@ -1,28 +1,22 @@
 ## Machine Learning in Automation
 
 ### Objectives
-- Understand what ML is (and isn’t) in an industrial context
+- Understand ML in an industrial context
+    - What can it do?
+    - Where does it make sense?
 - Understand training and inference
     - Tools, technologies, roles & responsibilities
-    - What is ONNX?
-- TwinCAT real-time ML (TF38xx)
 
 ### Agenda
-1. Context & Concepts
-    - Use cases
-        - Predictive maintenance
-        - Anamoly detection
-        - Quality classification
-    - Supervised vs. unsupervised learning
-    - Beckhoff products and solutions
+1. Context & Concepts (Presentation)
 2. Tooling & Setup
     - Python + packages
         - [Python 3.10](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe)
-        - `pip install pandas numpy scikit-learn onnx skl2onnx matplotlib onnxruntime jupyter`
+        - `pip install pandas numpy scikit-learn onnx skl2onnx matplotlib onnxruntime`
+        - Set `PATH` environment variable
     - TwinCAT requirements
-    - Sample data
-3. Lab #1: Supervised learning
-4. Lab #2: Unsupervised learning
+        - TF3800 Machine Learning Runtime
+3. Lab: Supervised learning
 
 ## Lab #1 - Supervised Learning
 
@@ -46,7 +40,7 @@ The above metrics represent our data set, but they are not the only features we 
 > A timestamp might look like this: *1778118721000* or this: *YYYY:MM:DD MM:HH:ss*<br />
 > But what else does it tell us? DoW, DoM, ToD, age/recency vs NOW(), interval patterns like daily, weekly, monthly, per-shift, seasonal, etc... → features can be **derived** from the context of a value.
 
-For our process data, what meaningful features can we extract? Simply using the raw signal data is one approach, but that's not always effective or optimal for models - especially ones we want to run in real-time. Usually, better relationships can be derived by applying *aggregate functions* to the signal data. We don't have to get too fancy with it, either – a lot can be gained from your basic STATS 101 formulas:
+For our process data, what meaningful features can we extract? Simply using the raw signal data is one approach, but that's not always effective or optimal for models - especially ones we want to run in real-time. Usually, better relationships can be derived by applying *aggregate functions* or signal processing to the raw data. We don't have to go full condition monitoring with it, either – a lot can be gained from your basic STATS 101 formulas:
 - Mean (the average)
 - Range (the spread)
 - Standard deviation (stability)
@@ -139,10 +133,82 @@ temp,cycle_time,curr_mean,curr_peak,curr_range,curr_delta_max,curr_delta_idx,cur
 33.7387,224,8.1583,9.5316,4.1955,1.0633,5.0,1.1701,1.9758,2.7215,1.4106,-0.9529,12.0,0.3460
 ...
 ```
-We should be getting a fresh record every 1 second (cycle). We are gong to need a fair amount of records, so while this cooks 🧑‍🍳 let's talk about some concepts:
+We should be getting a fresh record every 1 second (cycle). In ML, usually more data = better, so let's let this cook for awhile 🧑‍🍳 while we talk about some concepts and terminology:
 
 1. Supervised vs. unsupervised learning
     - We talked about **features**, now what are **labels**?
+	- Supervised example: regression trees (this is what we will use for the lab)
+2. Bias and variance - balancing model error
+    - High Bias: underfit, oversimplified, too general
+        - Need more features, increase complexity
+        - "bias" - think "presumptuous"
+    - High Variance: overfit, complex, noisy
+        - Need more training data, reduce complexity
+        - "variance" - between point-to-point relationships
 
+Now we should have a reasonably-sized data set to work with. Step 1 will be **training**. Since we are using a *supervised* learning algorithm, first we need to apply **labels**. For the "manual" inspection, we will use the following python script to simulate an operator applying a score to each part in our data set.
 
-    
+```python
+# manual_inspect.py
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# load data
+df = pd.read_csv("samples_train.csv")
+
+# delta idx - custom scoring feature
+df["vibe_delta"] = (1 - abs(df["vibe_delta_idx"] - 12) / 12) ** 2
+df["curr_delta"] = (1 - abs(df["curr_delta_idx"] - 12) / 12) ** 2
+
+# quality function - operators "eyes"
+df["man_quality"] = (
+    1.2
+        - 0.45 * df["vibe_delta"] 
+        - 0.35 * df["curr_delta"] 
+        - 0.10 * abs(df["vibe_delta_max"])
+        - 0.01 * abs(df["curr_delta_max"]) 
+        - 0.01 * df["curr_std"] 
+        - 0.02 * df["vibe_std"]
+)
+
+# clamped to [0,1]
+df["man_quality"] = df["man_quality"].clip(0, 1)
+
+# visualize scoring distribution
+print("\nQuality Summary:")
+print(df["man_quality"].describe())
+
+print("\nDistribution buckets:")
+print(pd.cut(df["man_quality"], 
+    bins=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]).value_counts())
+
+# plot score distribution histogram
+plt.hist(df["man_quality"], bins=20)
+plt.title("Quality Distribution")
+plt.xlabel("Quality")
+plt.ylabel("Count")
+plt.show()
+
+# save labeled dataset
+df.drop(columns=["vibe_delta","curr_delta"], inplace=True)
+df.to_csv("samples_manual_score.csv", index=False)
+```
+
+Ideally you will be able to feed this script roughly 1000 samples. If you have more than that, trim the file and keep the excess for testing with the trained model. Make sure to keep all the appropriate headers intact when modifying CSVs.
+
+Double-check your file names and paths, and run the script with `python .\manual_inspect.py`. You should get a histogram of the scoring distribution, and an output file `samples_manual_score.csv` with all the same data + a new column with the manual score between `0.0-1.0`. Let's perform some manual analysis of the data set in Excel. We can trend the score alongside some of the features and illustrate some of the correlations mentioned in the customer problem statement.
+
+> Hint: The manual score most heavily correlates with vibration and current data. Not just the mean, peak, or max range, *but the point in the process at which each signal varies the most.* This is heavily influenced by temperatue and cycle time - but only when those conditions complement each other in certain ways. Think about the difficulty in capturing all of this effectively with conditional logic:
+```js
+// temp in threshold AND cycle time in threshold AND 
+// difference between vibration AND current measurements are outside acceptable range...
+if ((temp in temp_thresh_1) && !(temp in temp_thresh_2) && (cycles in cycle_thresh_1) || !(temp in temp_thresh_1) && (cycles in cycle_thresh_2))
+	for (i in (cycles in cycle_thresh))
+		if (abs(vib_data[i + 1] - vib_data[i]) > vib_delta_thresh) && 
+			(abs(curr_data[i + 1] - curr_data[i]) > curr_delta_thresh)
+				//...
+```
+...and this is still not guaranteed to produce results consistent with the "eyeball" test. This is what the customer meant by "chasing [their] tails" with regards to an algorithmic approach. These are examplary conditions for the *when to use it?* question in regards to the application of machine learning.
+
+So, let's start building our regression trees from scratch! JK, the python tools package that bit up for us into nice 1- or 2-line function calls. With the following script...

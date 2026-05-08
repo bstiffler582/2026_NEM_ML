@@ -9,9 +9,10 @@ from sklearn.metrics import mean_squared_error
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 
-# Load data
-df = pd.read_csv("samples_scored.csv")
+# load data
+df = pd.read_csv("samples_manual_score.csv")
 
+## feature list
 features = [
     "temp",
     "cycle_time",
@@ -32,11 +33,11 @@ features = [
 X = df[features]
 y = df["man_quality"]
 
-# Train
+# call training method
 model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.03, max_depth=3)
 model.fit(X, y)
 
-# Export ONNX
+# export and write ONNX
 initial_type = [('float_input', FloatTensorType([None, len(features)]))]
 onnx_model = convert_sklearn(model, initial_types=initial_type)
 

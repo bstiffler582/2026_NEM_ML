@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import onnxruntime as ort
+import matplotlib.pyplot as plt
 
 # =========================
 # Load ONNX
@@ -11,7 +12,7 @@ input_name = sess.get_inputs()[0].name
 # =========================
 # Load test data
 # =========================
-df = pd.read_csv("samples.csv")
+df = pd.read_csv("samples_manual_score.csv")
 
 features = [
     "temp",
@@ -40,3 +41,14 @@ preds = sess.run(None, {input_name: X})[0]
 df["onnx_pred"] = preds
 
 df.to_csv("inferred.csv")
+
+# =========================
+# Plot histogram
+# =========================
+plt.hist(df["man_quality"], bins=20, alpha=0.5, label="manual")
+plt.hist(df["onnx_pred"], bins=20, alpha=0.5, label="predicted")
+plt.title("Quality Distribution")
+plt.xlabel("Quality")
+plt.ylabel("Count")
+plt.legend(loc='upper left')
+plt.show()
