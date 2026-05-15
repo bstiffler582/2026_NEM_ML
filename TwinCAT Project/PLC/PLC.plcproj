@@ -22,6 +22,9 @@
     <Compile Include="Data\FB_FileIO.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Data\F_Feature_Array.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Data\F_LRealToStr.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -35,6 +38,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\MAIN.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\ST_trainedInput.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\ST_trainedOutput.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="_deprecated\F_STAT_Mean.TcPOU">
@@ -73,6 +82,10 @@
     <PlaceholderReference Include="Tc3_Analytics">
       <DefaultResolution>Tc3_Analytics, * (Beckhoff Automation GmbH)</DefaultResolution>
       <Namespace>Tc3_Analytics</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc3_MLL">
+      <DefaultResolution>Tc3_MLL, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc3_MLL</Namespace>
     </PlaceholderReference>
     <PlaceholderReference Include="Tc3_Module">
       <DefaultResolution>Tc3_Module, * (Beckhoff Automation GmbH)</DefaultResolution>

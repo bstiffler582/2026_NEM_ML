@@ -27,6 +27,18 @@ VAR
 	fbStatsVibration	: FB_ALY_ArrayStatistics;
 	stFeatures			: ST_Features;
 	
+	// machine learning
+	sOnnxPath			: STRING := 'C:\Temp\csv\trained.xml';
+	fbPredict  			:  FB_MllPrediction;      // ML Interface
+	nInputDim 			: UDINT := 1;
+	nOutputDim 			: UDINT := 1;
+	fDataIn				: ST_trainedInput;
+	fDataOut 			: ST_trainedOutput;
+	
+	hrErrorCode  		: HRESULT;
+	bLoadModel   		: BOOL;
+	nMlState       		: INT := 0;
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -89,7 +101,48 @@ END_IF
 
 IF bFileWrite AND_THEN fbFile.AppendText(sFilePath, sData) THEN
 	bFileWrite := FALSE;
-END_IF]]></ST>
+END_IF
+
+CASE nMlState OF
+    0: // idle state
+		IF bLoadModel THEN
+			bLoadModel := FALSE;
+			nMlState := 10;
+		END_IF
+	10: // Config state
+		fbPredict.stPredictionParameter.MlModelFilepath := sOnnxPath; // provide model path and name
+		IF fbPredict.Configure() THEN // load model
+			IF fbPredict.bError THEN
+				nMlState := 999;
+				hrErrorCode := fbPredict.hrErrorCode;
+			ELSE // no error -> proceed to predict state
+				nMlState := 20; 
+			END_IF
+		END_IF 
+   20: // Predict state
+   		IF rtStart.Q THEN
+			fDataIn := F_Feature_Array(stFeatures);
+			fbPredict.Predict(
+				pDataInp := ADR(fDataIn.in_float_input),
+				nDataInpDim := nInputDim,
+				fmtDataInpType := ETcMllDataType.E_MLLDT_FP32_REAL,
+				pDataOut := ADR(fDataOut.out_variable),
+				nDataOutDim := nOutputDim,
+				fmtDataOutType := ETcMllDataType.E_MLLDT_FP32_REAL,
+				nEngineId := 0,
+				nConcurrencyId := 0);
+		END_IF
+         
+		IF fbPredict.bError THEN // error handling
+		 	nMlState := 999;
+		 	hrErrorCode := fbPredict.hrErrorCode;         
+		ELSIF bLoadModel THEN // load (updated) model
+		 	bLoadModel := FALSE;
+		 	nMlState := 10;
+		END_IF;         
+   999: // Error state
+       // add error handling here       
+END_CASE]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

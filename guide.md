@@ -209,6 +209,9 @@ if ((temp in temp_thresh_1) && !(temp in temp_thresh_2) && (cycles in cycle_thre
 			(abs(curr_data[i + 1] - curr_data[i]) > curr_delta_thresh)
 				//...
 ```
-...and this is still not guaranteed to produce results consistent with the "eyeball" test. This is what the customer meant by "chasing [their] tails" with regards to an algorithmic approach. These are examplary conditions for the *when to use it?* question in regards to the application of machine learning.
+...and this is still not guaranteed to produce results consistent with the "eyeball" test. This is what the customer meant by "chasing [their] tails" with regards to an algorithmic approach. These are examplary conditions for the *when to use it* question in regards to the application of machine learning.
 
-So, let's start building our regression trees from scratch! JK, the python tools package that bit up for us into nice 1- or 2-line function calls. With the following script...
+So, let's start building our regression trees from scratch! JK, the python tools package that bit up for us into nice 1- or 2-line function calls. With the following script:
+
+```python
+```
