@@ -5,8 +5,7 @@
 VAR_INPUT
 	Features 		: ST_Features;
 END_VAR
-VAR
-END_VAR
+
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[F_Feature_Array.in_float_input[0, 0] := TO_REAL(Features.temp);

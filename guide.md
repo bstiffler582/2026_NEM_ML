@@ -128,6 +128,33 @@ END_TYPE
 		sData := F_Feature_Csv(stFeatures);
 	END_IF
 ```
+The `F_Feature_Csv` function is just taking the feature structure and formatting it to a CSV string:
+```js
+FUNCTION F_Feature_Csv : STRING(512)
+VAR_INPUT
+	Features		: ST_Features;
+END_VAR
+```
+```js
+F_Feature_Csv := CONCAT(F_LRealToStr(Features.temp,  4), ',');
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(TO_STRING(Features.cycle_time), ','));
+
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.curr_mean,  4), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.curr_peak,  4), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.curr_range, 4), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.curr_delta_max, 4), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(TO_STRING(Features.curr_delta_idx), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.curr_std,  4), ','));
+
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.vibe_mean,  4), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.vibe_peak,  4), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.vibe_range, 4), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.vibe_delta_max, 4), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(TO_STRING(Features.vibe_delta_idx), ','));
+F_Feature_Csv := CONCAT(F_Feature_Csv, CONCAT(F_LRealToStr(Features.vibe_std,  4), '$N'));
+```
+
+
 3. Let's collect some data. Ensure you have a valid path in the `sFilePath` variable. Copy the [headers.csv file](/data/headers.csv) into that path and rename it appropriately ("samples.csv"). Flip the `bEnableLogging` bit and verify that data is coming in:
 ```
 temp,cycle_time,curr_mean,curr_peak,curr_range,curr_delta_max,curr_delta_idx,curr_std,vibe_mean,vibe_peak,vibe_range,vibe_delta_max,vibe_delta_idx,vibe_std
@@ -407,4 +434,30 @@ CASE nMlState OF
    999: // Error state
        // add error handling here       
 END_CASE
+```
+
+The `F_Feature_Array` function simply loads our models input array from the `ST_Features` structure. Again, parameter *order* is important here:
+```js
+FUNCTION F_Feature_Array : ST_modelInput
+VAR_INPUT
+	Features 		: ST_Features;
+END_VAR
+```
+```
+F_Feature_Array.in_float_input[0, 0] := TO_REAL(Features.temp);
+F_Feature_Array.in_float_input[0, 1] := TO_REAL(Features.cycle_time);
+
+F_Feature_Array.in_float_input[0, 2] := TO_REAL(Features.curr_mean);
+F_Feature_Array.in_float_input[0, 3] := TO_REAL(Features.curr_peak);
+F_Feature_Array.in_float_input[0, 4] := TO_REAL(Features.curr_range);
+F_Feature_Array.in_float_input[0, 5] := TO_REAL(Features.curr_delta_max);
+F_Feature_Array.in_float_input[0, 6] := TO_REAL(Features.curr_delta_idx);
+F_Feature_Array.in_float_input[0, 7] := TO_REAL(Features.curr_std);
+
+F_Feature_Array.in_float_input[0, 8] := TO_REAL(Features.vibe_mean);
+F_Feature_Array.in_float_input[0, 9] := TO_REAL(Features.vibe_peak);
+F_Feature_Array.in_float_input[0, 10] := TO_REAL(Features.vibe_range);
+F_Feature_Array.in_float_input[0, 11] := TO_REAL(Features.vibe_delta_max);
+F_Feature_Array.in_float_input[0, 12] := TO_REAL(Features.vibe_delta_idx);
+F_Feature_Array.in_float_input[0, 13] := TO_REAL(Features.vibe_std);
 ```

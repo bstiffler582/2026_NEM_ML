@@ -30,7 +30,7 @@ VAR
 	// machine learning
 	sOnnxPath			: STRING := 'C:\Temp\csv\trained.xml';
 	fbPredict  			: FB_MllPrediction;      // ML Interface
-	nInputDim 			: UDINT := 1;
+	nInputDim 			: UDINT := 14;
 	nOutputDim 			: UDINT := 1;
 	fDataIn				: ST_trainedInput;
 	fDataOut 			: ST_trainedOutput;

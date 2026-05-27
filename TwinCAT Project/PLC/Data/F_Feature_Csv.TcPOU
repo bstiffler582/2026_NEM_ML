@@ -5,9 +5,7 @@
 VAR_INPUT
 	Features		: ST_Features;
 END_VAR
-VAR
-	
-END_VAR
+
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[F_Feature_Csv := CONCAT(F_LRealToStr(Features.temp,  4), ',');
