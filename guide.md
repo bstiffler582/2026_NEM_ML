@@ -12,11 +12,13 @@
 2. Tooling & Setup
     - Python + packages
         - [Python 3.10](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe)
+		- Set `PATH` environment variable
         - `pip install pandas numpy scikit-learn onnx skl2onnx matplotlib onnxruntime`
-        - Set `PATH` environment variable
     - TwinCAT requirements
         - TF3800 Machine Learning Runtime
+		- TwinCAT Machine Learning Model Manager
 3. Lab: Supervised learning
+4. Lab: Unsupervised Learning
 
 ## Lab #1 - Supervised Learning
 
@@ -53,9 +55,9 @@ These derived values will give our machine learning model more data and more con
 >We are going to do it right in the PLC. Why? Because:<br />
 >a.) We will be inferencing right in the real-time<br />
 >b.) We will need this *processed* data for the inference input<br />
->c.) We can :)
+>c.) We can (+1 more for PC-based controls 🙏)
 
-#### Data Acquisition
+### Data Acquisition
 1. Create a structure to hold all the model's features:
 ```js
 TYPE ST_Features :
@@ -83,7 +85,7 @@ END_TYPE
 
 2. To populate the feature structure, we will use this handy `FB_ALY_ArrayStatistics` block from the `Tc3_Analytics` library. It packages up all the aggregate functions we need:
 ```js
-    // declare user vars
+    /// declare user vars
 	fbStatsCurrent		: FB_ALY_ArrayStatistics;
 	fbStatsVibration	: FB_ALY_ArrayStatistics;
 	stFeatures			: ST_Features;
@@ -94,7 +96,7 @@ END_TYPE
 	fbStatsVibration.Configure(FALSE, 0.1, 0.1, 0);
 ```
 ```js
-    /// populate non-aggregate features
+	/// populate non-aggregate features
 	stFeatures.temp := fTemperature;
 	stFeatures.cycle_time := nCycleTime;
 ```
@@ -145,6 +147,9 @@ We should be getting a fresh record every 1 second (cycle). In ML, usually more 
     - High Variance: overfit, complex, noisy
         - Need more training data, reduce complexity
         - "variance" - between point-to-point relationships
+3. Regression trees (Powerpoint)
+
+### Training
 
 Now we should have a reasonably-sized data set to work with. Step 1 will be **training**. Since we are using a *supervised* learning algorithm, first we need to apply **labels**. For the "manual" inspection, we will use the following python script to simulate an operator applying a score to each part in our data set.
 
@@ -209,9 +214,197 @@ if ((temp in temp_thresh_1) && !(temp in temp_thresh_2) && (cycles in cycle_thre
 			(abs(curr_data[i + 1] - curr_data[i]) > curr_delta_thresh)
 				//...
 ```
-...and this is still not guaranteed to produce results consistent with the "eyeball" test. This is what the customer meant by "chasing [their] tails" with regards to an algorithmic approach. These are examplary conditions for the *when to use it* question in regards to the application of machine learning.
+...and this is still not guaranteed to produce results consistent with the "eyeball" test. This is what the customer meant by "chasing [their] tails" with regards to an algorithmic approach. These are examplary conditions for the *when to use it* question in regards to the application of machine learning models.
 
-So, let's start building our regression trees from scratch! JK, the python tools package that bit up for us into nice 1- or 2-line function calls. With the following script:
+So, let's start building our regression trees from scratch! JK, the python tools package that bit up for us into nice 1- or 2-line function calls.
 
 ```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error
+
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+
+# read in our trained data
+df = pd.read_csv("samples_manual_score.csv")
+
+## feature list - consistent order matters!
+features = [
+    "temp",
+    "cycle_time",
+    "curr_mean",
+    "curr_peak",
+    "curr_range",
+    "curr_delta_max",
+    "curr_delta_idx",
+    "curr_std",
+    "vibe_mean",
+    "vibe_peak",
+    "vibe_range",
+    "vibe_delta_max",
+    "vibe_delta_idx",
+    "vibe_std"
+]
+
+# X = features
+X = df[features]
+
+# Y = label
+y = df["man_quality"]
+
+# call training method
+model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.03, max_depth=3)
+model.fit(X, y)
+
+# export to ONNX for TwinCAT
+initial_type = [('float_input', FloatTensorType([None, len(features)]))]
+onnx_model = convert_sklearn(model, initial_types=initial_type)
+with open("model.onnx", "wb") as f:
+    f.write(onnx_model.SerializeToString())
+
+print("Model exported.")
+```
+
+We should now have a trained model: `model.onnx`. We can feed this model novel feature input and receive an inferred value as output. We can actually view some information about our model via an online tool called [neutron](https://netron.app/). There is not much to look at, but we should at least be able to see the form of our input/output (`x14 float` -> `x1 float`).
+
+> ONNX files contain:
+>- The Computation Graph: A structured map of the model's architecture. It lays out the exact nodes, layers (e.g., Convolutional layers, Fully Connected layers), and the sequence of mathematical operations the data must pass through.
+>- Learned Parameters & Weights: The numerical values learned during the training process. These are stored as mathematical matrices (Tensors) that dictate how inputs are transformed into predictions.
+>- Metadata: Descriptive data about the model. This includes the ONNX version used, the author or tool that generated the model, data types, shapes of the inputs and outputs, and human-readable documentation.
+
+### Inference
+
+Before we implement our inference in our PLC, we can "sanity-check" it using the same python tools we used for development and training. The following script will run our training data set through the ONNX model to produce an inferred value for each record.
+
+```python
+import pandas as pd
+import numpy as np
+import onnxruntime as ort
+import matplotlib.pyplot as plt
+
+# load the onnx model for inference
+sess = ort.InferenceSession("model.onnx")
+input_name = sess.get_inputs()[0].name
+
+# load manually tested data
+df = pd.read_csv("samples_manual_score.csv")
+
+features = [
+    "temp",
+    "cycle_time",
+    "curr_mean",
+    "curr_peak",
+    "curr_range",
+    "curr_delta_max",
+    "curr_delta_idx",
+    "curr_std",
+    "vibe_mean",
+    "vibe_peak",
+    "vibe_range",
+    "vibe_delta_max",
+    "vibe_delta_idx",
+    "vibe_std"
+]
+
+X = df[features].values.astype(np.float32)
+
+# run inference
+preds = sess.run(None, {input_name: X})[0]
+
+# create new column 'onnx_pred'
+df["onnx_pred"] = preds
+
+# output inference to new file
+df.to_csv("inferred.csv")
+
+# plot manual / predicted comparison histogram
+plt.hist(df["man_quality"], bins=20, alpha=0.5, label="manual")
+plt.hist(df["onnx_pred"], bins=20, alpha=0.5, label="predicted")
+plt.title("Quality Distribution")
+plt.xlabel("Quality")
+plt.ylabel("Count")
+plt.legend(loc='upper left')
+plt.show()
+```
+
+How does your model perform based on the scoring distributions? We can further analyze the results (e.g. in Excel) by comparing the `man_quality` and `onnx_pred` columns of our new `inferred.csv` file. If it looks decent (or if not - this is all psuedo-random data), let's get our real-time inference running in TwinCAT.
+
+Before wiring up the PLC code, we need to use the Model Manager to convert the ONNX file to a TwinCAT ML XML format.
+
+1. From the menu bar: TwinCAT -> Machine Learning -> Machine Learning Model Manager
+2. Select files -> point to your ONNX
+3. Convert files -> Dialog should indicate compatibility and success
+4. Open target path
+
+>Fun fact: This Model Manager tool can also facilitate things like scaling input/output data or applying meta data to the model. It also has functions for automating this process via CLI or even python. That can be useful if you're continuously re-training and need to "hot-swap" the model at runtime!
+
+You will see two XML files in the target path. One is the model itself, formatted for TwinCAT ML runtime consumption. The other (`_plcopen.xml`) contains the input and output data types the model FB will expect.
+
+5. Import I/O data-types (DUTs -> Import PLCopenXML)
+6. Copy the model XML file to your runtime path
+
+Finally, for the PLC code. Some new declarations:
+```js
+	// machine learning declarations
+	sOnnxPath			: STRING := 'C:\Temp\csv\model.xml';
+	fbPredict  			: FB_MllPrediction;
+	nInputDim 			: UDINT := 14;
+	nOutputDim 			: UDINT := 1;
+	fDataIn				: ST_modeInput;
+	fDataOut 			: ST_modelOutput;
+	
+	hrErrorCode  		: HRESULT;
+	bLoadModel   		: BOOL;
+	nMlState       		: INT := 0;
+```
+
+A new case statement:
+```js
+CASE nMlState OF
+    0: // idle state
+		IF bLoadModel THEN
+			bLoadModel := FALSE;
+			nMlState := 10;
+		END_IF
+	10: // Config state
+		// load model file & configure
+		fbPredict.stPredictionParameter.MlModelFilepath := sOnnxPath;
+		IF fbPredict.Configure() THEN // load model
+			IF fbPredict.bError THEN
+				nMlState := 999;
+				hrErrorCode := fbPredict.hrErrorCode;
+			ELSE // no error -> proceed to predict state
+				nMlState := 20; 
+			END_IF
+		END_IF 
+   20: // Predict state
+		// format feature array input
+   		IF rtStart.Q THEN
+			fDataIn := F_Feature_Array(stFeatures);
+			fbPredict.Predict(
+				pDataInp := ADR(fDataIn.in_float_input),
+				nDataInpDim := nInputDim,
+				fmtDataInpType := ETcMllDataType.E_MLLDT_FP32_REAL,
+				pDataOut := ADR(fDataOut.out_variable),
+				nDataOutDim := nOutputDim,
+				fmtDataOutType := ETcMllDataType.E_MLLDT_FP32_REAL,
+				nEngineId := 0,
+				nConcurrencyId := 0);
+		END_IF
+         
+		IF fbPredict.bError THEN // error handling
+		 	nMlState := 999;
+		 	hrErrorCode := fbPredict.hrErrorCode;         
+		ELSIF bLoadModel THEN // load (updated) model
+		 	bLoadModel := FALSE;
+		 	nMlState := 10;
+		END_IF;         
+   999: // Error state
+       // add error handling here       
+END_CASE
 ```
