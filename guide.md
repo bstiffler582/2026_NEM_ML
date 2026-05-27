@@ -17,8 +17,8 @@
     - TwinCAT requirements
         - TF3800 Machine Learning Runtime
 		- TwinCAT Machine Learning Model Manager
-3. Lab: Supervised learning
-4. Lab: Unsupervised Learning
+3. Lab 1: Supervised learning
+4. Lab 2: Unsupervised Learning
 
 ## Lab #1 - Supervised Learning
 
@@ -178,56 +178,9 @@ We should be getting a fresh record every 1 second (cycle). In ML, usually more 
 
 ### Training
 
-Now we should have a reasonably-sized data set to work with. Step 1 will be **training**. Since we are using a *supervised* learning algorithm, first we need to apply **labels**. For the "manual" inspection, we will use the following python script to simulate an operator applying a score to each part in our data set.
+Now we should have a reasonably-sized data set to work with. Step 1 will be **training**. Since we are using a *supervised* learning algorithm, first we need to apply **labels**. For the "manual" inspection, we will use the `manual_inspect.py` script to simulate an operator applying a score to each part in our data set.
 
-```python
-# manual_inspect.py
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
-# load data
-df = pd.read_csv("samples_train.csv")
-
-# delta idx - custom scoring feature
-df["vibe_delta"] = (1 - abs(df["vibe_delta_idx"] - 12) / 12) ** 2
-df["curr_delta"] = (1 - abs(df["curr_delta_idx"] - 12) / 12) ** 2
-
-# quality function - operators "eyes"
-df["man_quality"] = (
-    1.2
-        - 0.45 * df["vibe_delta"] 
-        - 0.35 * df["curr_delta"] 
-        - 0.10 * abs(df["vibe_delta_max"])
-        - 0.01 * abs(df["curr_delta_max"]) 
-        - 0.01 * df["curr_std"] 
-        - 0.02 * df["vibe_std"]
-)
-
-# clamped to [0,1]
-df["man_quality"] = df["man_quality"].clip(0, 1)
-
-# visualize scoring distribution
-print("\nQuality Summary:")
-print(df["man_quality"].describe())
-
-print("\nDistribution buckets:")
-print(pd.cut(df["man_quality"], 
-    bins=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]).value_counts())
-
-# plot score distribution histogram
-plt.hist(df["man_quality"], bins=20)
-plt.title("Quality Distribution")
-plt.xlabel("Quality")
-plt.ylabel("Count")
-plt.show()
-
-# save labeled dataset
-df.drop(columns=["vibe_delta","curr_delta"], inplace=True)
-df.to_csv("samples_manual_score.csv", index=False)
-```
-
-Ideally you will be able to feed this script roughly 1000 samples. If you have more than that, trim the file and keep the excess for testing with the trained model. Make sure to keep all the appropriate headers intact when modifying CSVs.
+Ideally you will be able to feed this script roughly 1000 samples. If you have more than that, trim the file and keep the excess for testing later on with our trained model. Make sure to keep all the appropriate headers intact when modifying CSVs.
 
 Double-check your file names and paths, and run the script with `python .\manual_inspect.py`. You should get a histogram of the scoring distribution, and an output file `samples_manual_score.csv` with all the same data + a new column with the manual score between `0.0-1.0`. Let's perform some manual analysis of the data set in Excel. We can trend the score alongside some of the features and illustrate some of the correlations mentioned in the customer problem statement.
 
@@ -243,7 +196,7 @@ if ((temp in temp_thresh_1) && !(temp in temp_thresh_2) && (cycles in cycle_thre
 ```
 ...and this is still not guaranteed to produce results consistent with the "eyeball" test. This is what the customer meant by "chasing [their] tails" with regards to an algorithmic approach. These are examplary conditions for the *when to use it* question in regards to the application of machine learning models.
 
-So, let's start building our regression trees from scratch! JK, the python tools package that bit up for us into nice 1- or 2-line function calls.
+So, let's start building our regression trees from scratch! JK, the python tools package that up for us into nice 1- or 2-line function calls. Create a file `training.py`:
 
 ```python
 import pandas as pd
@@ -257,10 +210,10 @@ from sklearn.metrics import mean_squared_error
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 
-# read in our trained data
+# read in our labeled data
 df = pd.read_csv("samples_manual_score.csv")
 
-## feature list - consistent order matters!
+## feature list - *consistent order matters later...
 features = [
     "temp",
     "cycle_time",
@@ -288,6 +241,10 @@ y = df["man_quality"]
 model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.03, max_depth=3)
 model.fit(X, y)
 
+# print feature weights
+fdf = pd.DataFrame([model.feature_importances_])
+fdf.to_csv('feature_weights.csv', index=False, header=features)
+
 # export to ONNX for TwinCAT
 initial_type = [('float_input', FloatTensorType([None, len(features)]))]
 onnx_model = convert_sklearn(model, initial_types=initial_type)
@@ -297,7 +254,24 @@ with open("model.onnx", "wb") as f:
 print("Model exported.")
 ```
 
-We should now have a trained model: `model.onnx`. We can feed this model novel feature input and receive an inferred value as output. We can actually view some information about our model via an online tool called [neutron](https://netron.app/). There is not much to look at, but we should at least be able to see the form of our input/output (`x14 float` -> `x1 float`).
+Obviously, the magic is happening here:
+```python
+# call training method
+model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.03, max_depth=3)
+model.fit(X, y)
+```
+For fine-tuning, we can look at all the parameter descriptions on [the scikit-learn site](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingRegressor.html).
+
+*Why* GradientBoostingRegressor?
+- Handles non-linear relationships well
+- Great for relational, tabular data – often outperforming neural networks
+  - Especially for smaller data sets
+- Good handling of mixed feature data without normalizing / scaling
+- ONNX- / real-time-friendly (fast + deterministic)
+
+Observe the file `feature_weights.csv` in Excel. These values were calculated in the training process as the relative contribution of each input feature toward predicting the target label. We should expect vibration points to be heavily weighted against the other labels.
+
+Additionally, we should now have the trained model itself: `model.onnx`. We can feed this model novel feature inputs and receive an inferred value as output. We can actually view some information about our model by pointing it to the online tool [netron](https://netron.app/). There is not much to look at, but we should at least be able to see the *form* of our input & output (`x14 float` -> `x1 float`), the type (regressor), and some additional information.
 
 > ONNX files contain:
 >- The Computation Graph: A structured map of the model's architecture. It lays out the exact nodes, layers (e.g., Convolutional layers, Fully Connected layers), and the sequence of mathematical operations the data must pass through.
@@ -306,7 +280,7 @@ We should now have a trained model: `model.onnx`. We can feed this model novel f
 
 ### Inference
 
-Before we implement our inference in our PLC, we can "sanity-check" it using the same python tools we used for development and training. The following script will run our training data set through the ONNX model to produce an inferred value for each record.
+Before we implement the inference in our PLC, we can "sanity-check" it using the same python tools we used for development and training. The following script will run our training data set through the ONNX model to produce an inferred value for each record.
 
 ```python
 import pandas as pd
@@ -321,6 +295,7 @@ input_name = sess.get_inputs()[0].name
 # load manually tested data
 df = pd.read_csv("samples_manual_score.csv")
 
+# feature list - same order as training
 features = [
     "temp",
     "cycle_time",
@@ -359,7 +334,7 @@ plt.legend(loc='upper left')
 plt.show()
 ```
 
-How does your model perform based on the scoring distributions? We can further analyze the results (e.g. in Excel) by comparing the `man_quality` and `onnx_pred` columns of our new `inferred.csv` file. If it looks decent (or if not - this is all psuedo-random data), let's get our real-time inference running in TwinCAT.
+How does your model perform based on the scoring distributions? We can further analyze the results (e.g. in Excel) by comparing the `man_quality` and `onnx_pred` columns of our new `inferred.csv` file. If you have any extra data leftover that was *not* used for training, this would be a good opportunity to run it through both the manual inspection process and the inference to compare results (no need to re-train). If it looks decent (or not - this is all psuedo-random data), let's get our real-time inference running in TwinCAT.
 
 Before wiring up the PLC code, we need to use the Model Manager to convert the ONNX file to a TwinCAT ML XML format.
 
@@ -382,7 +357,7 @@ Finally, for the PLC code. Some new declarations:
 	fbPredict  			: FB_MllPrediction;
 	nInputDim 			: UDINT := 14;
 	nOutputDim 			: UDINT := 1;
-	fDataIn				: ST_modeInput;
+	fDataIn				: ST_modelInput;
 	fDataOut 			: ST_modelOutput;
 	
 	hrErrorCode  		: HRESULT;
@@ -410,7 +385,7 @@ CASE nMlState OF
 			END_IF
 		END_IF 
    20: // Predict state
-		// format feature array input
+		// format feature array input and call Predict
    		IF rtStart.Q THEN
 			fDataIn := F_Feature_Array(stFeatures);
 			fbPredict.Predict(
@@ -461,3 +436,13 @@ F_Feature_Array.in_float_input[0, 11] := TO_REAL(Features.vibe_delta_max);
 F_Feature_Array.in_float_input[0, 12] := TO_REAL(Features.vibe_delta_idx);
 F_Feature_Array.in_float_input[0, 13] := TO_REAL(Features.vibe_std);
 ```
+
+Upon activating and running, you just need to toggle the `bLoadModel` bool to initialize the inference. For each cycle, we now get a "score" in `fDataOut.out_variable[0, 0]`. Our customer can implement a simple check on the score, diverting parts under a certain threshold to manual inspection. They can continue to collect data and refine the model as the machine runs and the process evolves.
+
+## Lab #2 - Unsupervised Learning
+
+#### Predictive Maintenance
+
+Assume we do *not* have the luxury of a manual inspection process for which we can derive a **labeled** dataset. We can still leverage a machine learning model via unsupervised learning. A model can be trained to detect statistically unusual behavior without having to know exactly **what** has gone wrong.
+
+That being said, we do still need data on which to train, and we need a known "good" state if we are to predict a "bad" one with a model.

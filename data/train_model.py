@@ -37,6 +37,10 @@ y = df["man_quality"]
 model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.03, max_depth=3)
 model.fit(X, y)
 
+# print feature weights
+fdf = pd.DataFrame([model.feature_importances_])
+fdf.to_csv('feature_weights.csv', index=False, header=features)
+
 # export and write ONNX
 initial_type = [('float_input', FloatTensorType([None, len(features)]))]
 onnx_model = convert_sklearn(model, initial_types=initial_type)
