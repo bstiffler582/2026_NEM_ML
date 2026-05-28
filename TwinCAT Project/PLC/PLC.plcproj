@@ -22,28 +22,13 @@
     <Compile Include="Data\FB_FileIO.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Data\F_Feature_Array.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Data\F_LRealToStr.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Data\F_Feature_Csv.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="DUTs\ST_Features.TcDUT">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="PlcTask.TcTTO">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\MAIN.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\ST_trainedInput.TcDUT">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\ST_trainedOutput.TcDUT">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -70,6 +55,10 @@
     <PlaceholderReference Include="Tc3_MLL">
       <DefaultResolution>Tc3_MLL, * (Beckhoff Automation GmbH)</DefaultResolution>
       <Namespace>Tc3_MLL</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc3_MlServer">
+      <DefaultResolution>Tc3_MlServer, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc3_MlServer</Namespace>
     </PlaceholderReference>
     <PlaceholderReference Include="Tc3_Module">
       <DefaultResolution>Tc3_Module, * (Beckhoff Automation GmbH)</DefaultResolution>

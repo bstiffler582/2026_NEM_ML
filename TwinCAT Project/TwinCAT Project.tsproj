@@ -1,10 +1,15 @@
 <?xml version="1.0"?>
 <TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4026.22">
-	<Project ProjectGUID="{1DD7959A-92E9-4A62-8DA4-3F4C79B3E6B4}" TargetNetId="199.4.42.250.1.1" Target64Bit="true" ShowHideConfigurations="#x6">
+	<Project ProjectGUID="{1DD7959A-92E9-4A62-8DA4-3F4C79B3E6B4}" Target64Bit="true" ShowHideConfigurations="#x6">
 		<System>
+			<Settings MaxCpus="6" NonWinCpus="1">
+				<Cpu CpuId="5"/>
+			</Settings>
 			<Licenses>
 				<Target>
+					<ManualSelect>{E0BE463B-AC1C-4966-A617-286B6222D736}</ManualSelect>
 					<ManualSelect>{6425CC43-74BE-40EB-B459-8349B5AB98BD}</ManualSelect>
+					<ManualSelect>{EC9292C2-7EC0-4D01-B1FF-CAE607ECD910}</ManualSelect>
 				</Target>
 			</Licenses>
 			<Tasks>
@@ -18,7 +23,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{C155FC50-1ED3-431F-B89A-775A9AC96697}" Name="PLC" PrjFilePath="PLC\PLC.plcproj" TmcFilePath="PLC\PLC.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{CD3FCA31-D93A-04D0-8973-3C8C1A4EF154}" TmcPath="PLC\PLC.tmc">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{429EC0FB-129D-31E1-8904-DD6D468FFCC8}" TmcPath="PLC\PLC.tmc">
 					<Name>PLC Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">
@@ -26,6 +31,10 @@
 						<Var>
 							<Name>MAIN.bCycleRun</Name>
 							<Type>BOOL</Type>
+						</Var>
+						<Var>
+							<Name>MAIN.nCycleTime</Name>
+							<Type>DINT</Type>
 						</Var>
 						<Var>
 							<Name>MAIN.fMotorCurrent</Name>
@@ -38,10 +47,6 @@
 						<Var>
 							<Name>MAIN.fVibration</Name>
 							<Type>LREAL</Type>
-						</Var>
-						<Var>
-							<Name>MAIN.nCycleTime</Name>
-							<Type>DINT</Type>
 						</Var>
 					</Vars>
 					<Contexts>
@@ -61,7 +66,7 @@
 				</Instance>
 			</Project>
 			<Project GUID="{43FCF88F-1B28-4ED4-BDC6-24E010D2391A}" Name="SIM" PrjFilePath="SIM\SIM.plcproj" TmcFilePath="SIM\SIM.tmc" ReloadTmc="true" AmsPort="852" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502040" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{C81A5A2E-2838-5C0D-D9EF-1020AED58439}" TmcPath="SIM\SIM.tmc">
+				<Instance Id="#x08502040" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{77B33F08-41E2-958B-3503-0E3E47590385}" TmcPath="SIM\SIM.tmc">
 					<Name>SIM Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="2" AreaNo="1">

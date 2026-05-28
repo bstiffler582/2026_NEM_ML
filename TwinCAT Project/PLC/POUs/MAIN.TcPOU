@@ -21,45 +21,29 @@ VAR
 	
 	current_arr			: ARRAY[0..24] OF LREAL;
 	vib_arr				: ARRAY[0..24] OF LREAL;
-	
-	/// declare user vars
-	fbStatsCurrent		: FB_ALY_ArrayStatistics;
-	fbStatsVibration	: FB_ALY_ArrayStatistics;
-	stFeatures			: ST_Features;
-	
-	// machine learning
-	sOnnxPath			: STRING := 'C:\Temp\csv\trained.xml';
-	fbPredict  			: FB_MllPrediction;      // ML Interface
-	nInputDim 			: UDINT := 14;
-	nOutputDim 			: UDINT := 1;
-	fDataIn				: ST_trainedInput;
-	fDataOut 			: ST_trainedOutput;
-	
-	hrErrorCode  		: HRESULT;
-	bLoadModel   		: BOOL;
-	nMlState       		: INT := 0;
-	
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[IF NOT bInit THEN
 	/// init ALY FBs
-	fbStatsCurrent.Configure(FALSE, 0.1, 0.1, 0);
-	fbStatsVibration.Configure(FALSE, 0.1, 0.1, 0);
+
 	bInit := FALSE;
 END_IF
 
 rtStart(CLK:=bCycleRun);
 IF rtStart.Q THEN
+	// reset for next cycle
 	i := 0;
 	MEMSET(ADR(current_arr[0]), 0, SIZEOF(LREAL) * 25);
 	MEMSET(ADR(vib_arr[0]), 0, SIZEOF(LREAL) * 25);
+	// trigger file write
 	IF bEnableLogging THEN
 		bFileWrite := TRUE;
 	END_IF
 END_IF
 
 IF bCycleRun THEN
+	// load cycle data
 	IF i < 25 THEN
 		current_arr[i] := fMotorCurrent;
 		vib_arr[i] := fVibration;
@@ -67,82 +51,16 @@ IF bCycleRun THEN
 	i := i + 1;
 	
 	/// populate non-aggregate features
-	stFeatures.temp := fTemperature;
-	stFeatures.cycle_time := nCycleTime;
 ELSE
-
 	/// call ALY FBs
-	fbStatsCurrent.Call(ADR(current_arr), SIZEOF(current_arr));
-	fbStatsVibration.Call(ADR(vib_arr), SIZEOF(vib_arr));
 	
 	/// populate aggregate features
-	IF fbStatsCurrent.bNewResult THEN
-		stFeatures.curr_mean := fbStatsCurrent.fMean;
-		stFeatures.curr_peak := fbStatsCurrent.fMax;
-		stFeatures.curr_range := fbStatsCurrent.fMax - fbStatsCurrent.fMin;
-		stFeatures.curr_delta_max := fbStatsCurrent.fMaxDelta;
-		stFeatures.curr_delta_idx := fbStatsCurrent.nIdxMaxDelta;
-		stFeatures.curr_std := fbStatsCurrent.fStandardDeviation;
-	END_IF
-	IF fbStatsVibration.bNewResult THEN
-		stFeatures.vibe_mean := fbStatsVibration.fMean;
-		stFeatures.vibe_peak := fbStatsVibration.fMax;
-		stFeatures.vibe_range := fbStatsVibration.fMax - fbStatsVibration.fMin;
-		stFeatures.vibe_delta_max := fbStatsVibration.fMaxDelta;
-		stFeatures.vibe_delta_idx := fbStatsVibration.nIdxMaxDelta;
-		stFeatures.vibe_std := fbStatsVibration.fStandardDeviation;
-	END_IF
 	
-	/// generate CSV string
-	IF fbStatsCurrent.bNewResult AND fbStatsVibration.bNewResult THEN
-		sData := F_Feature_Csv(stFeatures);
-	END_IF
 END_IF
 
 IF bFileWrite AND_THEN fbFile.AppendText(sFilePath, sData) THEN
 	bFileWrite := FALSE;
-END_IF
-
-CASE nMlState OF
-    0: // idle state
-		IF bLoadModel THEN
-			bLoadModel := FALSE;
-			nMlState := 10;
-		END_IF
-	10: // Config state
-		fbPredict.stPredictionParameter.MlModelFilepath := sOnnxPath; // provide model path and name
-		IF fbPredict.Configure() THEN // load model
-			IF fbPredict.bError THEN
-				nMlState := 999;
-				hrErrorCode := fbPredict.hrErrorCode;
-			ELSE // no error -> proceed to predict state
-				nMlState := 20; 
-			END_IF
-		END_IF 
-   20: // Predict state
-   		IF rtStart.Q THEN
-			fDataIn := F_Feature_Array(stFeatures);
-			fbPredict.Predict(
-				pDataInp := ADR(fDataIn.in_float_input),
-				nDataInpDim := nInputDim,
-				fmtDataInpType := ETcMllDataType.E_MLLDT_FP32_REAL,
-				pDataOut := ADR(fDataOut.out_variable),
-				nDataOutDim := nOutputDim,
-				fmtDataOutType := ETcMllDataType.E_MLLDT_FP32_REAL,
-				nEngineId := 0,
-				nConcurrencyId := 0);
-		END_IF
-         
-		IF fbPredict.bError THEN // error handling
-		 	nMlState := 999;
-		 	hrErrorCode := fbPredict.hrErrorCode;         
-		ELSIF bLoadModel THEN // load (updated) model
-		 	bLoadModel := FALSE;
-		 	nMlState := 10;
-		END_IF;         
-   999: // Error state
-       // add error handling here       
-END_CASE]]></ST>
+END_IF]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>
