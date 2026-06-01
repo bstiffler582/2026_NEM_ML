@@ -582,7 +582,7 @@ onnx_model = convert_sklearn(
     target_opset={'': 13, 'ai.onnx.ml': 3}
 )
 
-with open("model.onnx", "wb") as f:
+with open("model_unsupervised.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
 ```
 
