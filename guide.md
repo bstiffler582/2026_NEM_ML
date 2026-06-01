@@ -456,6 +456,9 @@ import matplotlib.pyplot as plt
 
 from sklearn.ensemble import IsolationForest
 
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+
 # load data
 df = pd.read_csv("samples_manual_score.csv")
 print("Loaded:", df.shape)
@@ -575,8 +578,9 @@ Add to `unsupervised.py` to generate the ONNX:
 initial_type = [('float_input', FloatTensorType([None, len(features)]))]
 onnx_model = convert_sklearn(
     model, 
-    initial_types=initial_types, 
+    initial_types=initial_type, 
     target_opset={'': 13, 'ai.onnx.ml': 3}
+)
 
 with open("model.onnx", "wb") as f:
     f.write(onnx_model.SerializeToString())
