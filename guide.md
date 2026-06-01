@@ -17,6 +17,7 @@
     - TwinCAT requirements
         - TF3800 Machine Learning Runtime
 		- TwinCAT Machine Learning Model Manager
+      	- TF3510 Analytics PLC Library
 3. Lab 1: Supervised learning
 4. Lab 2: Unsupervised Learning
 
